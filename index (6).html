@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>TUMO Barracas - Glitch Scavenger Hunt</title>
+<style>
+:root{--bg:#0B0E14;--p:#151a24;--g:#EF4444;--c:#fca5a5;--r:#fb923c;--t:#e5e7eb}
+*{box-sizing:border-box;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+body{margin:0;background:var(--bg);color:var(--t);font:16px system-ui,sans-serif;min-height:100vh}
+button,input{font:inherit}
+button{background:var(--p);color:var(--t);border:2px solid var(--g);border-radius:12px;padding:12px 16px;min-height:48px;cursor:pointer}
+button:active{background:var(--g);color:#000}
+button.x{border-color:var(--r)}
+input[type=text]{background:#0006;color:var(--g);border:2px solid var(--c);border-radius:12px;padding:12px;width:100%;user-select:text;-webkit-user-select:text}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #fff2;flex-wrap:wrap;gap:8px}
+.logo{font-weight:800;color:var(--g);font-size:20px;cursor:pointer}
+main{max-width:980px;margin:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--p);border:2px solid #fff2;border-radius:16px;padding:16px;text-align:left;min-height:120px}
+.card.g{border-color:var(--r);box-shadow:0 0 14px #fb923c55}
+.card.d{border-color:var(--g);box-shadow:0 0 14px #EF444455}
+.card.l{opacity:.45}
+.staff{background:#fca5a515;border-left:4px solid var(--c);padding:10px 14px;border-radius:8px;margin:12px 0}
+.ov{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;padding:8px;z-index:9}
+.md{background:var(--bg);border:2px solid var(--g);border-radius:18px;width:100%;max-width:640px;max-height:96vh;overflow:auto;padding:14px}
+.code{font:800 28px monospace;color:var(--g);text-align:center;margin:8px 0;text-shadow:0 0 12px var(--g)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.av{font-size:34px;padding:8px 12px}.av.s{background:var(--g)}
+svg,canvas{touch-action:none;max-width:100%}
+.arena{position:relative;height:340px;background:#0006;border:2px solid var(--c);border-radius:12px;overflow:hidden;touch-action:none}
+.arena.f{background:#fb923c55}
+.it{position:absolute;font-size:38px;line-height:1;cursor:pointer}
+.fd{display:flex;gap:14px;justify-content:center}
+.fd div{text-align:center;font-size:13px}
+input[type=range].v{writing-mode:vertical-lr;direction:rtl;height:200px;width:48px}
+input[type=range]{accent-color:var(--g);width:100%}
+.vf{position:relative;width:300px;height:220px;margin:auto;overflow:hidden;border:3px solid #fff;border-radius:8px;background:#345;touch-action:none}
+.vf .sc{position:absolute;font-size:80px;pointer-events:none}
+.vf .ret{position:absolute;left:125px;top:85px;width:50px;height:50px;border:2px solid var(--g);pointer-events:none}
+.cell{width:100%;aspect-ratio:1;border:1px solid #fff3;display:flex;align-items:center;justify-content:center;font-size:26px}
+.cf{position:fixed;top:-30px;font-size:26px;animation:fall 4s linear forwards;pointer-events:none;z-index:20}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.chip{display:inline-block;padding:8px 12px;border:2px solid var(--c);border-radius:10px;margin:3px}
+.dg{display:inline-block;animation:bn .5s infinite alternate}@keyframes bn{to{transform:translateY(-10px)}}
+</style></head><body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),E=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
+const CODES=['ROBOT-01','BUCLE-05','ANIMA-03','ARCADE-02','PROMPT-06','COHETE-3D','MARIO-85','DISENO-08'];
+const NAMES=['🦾 Robótica','💻 Programación','🎞 Animación','🎮 Desarrollo de Videojuegos','✨ Gen IA','🧊 Modelado 3D','🎧 Música','🎨 Diseño Gráfico'];
+const STAFF=['Ensamblá el robot: elegí cada pieza y colocala en su función.','Armá el algoritmo: llevá al bot hasta el servidor.','Ordená los cuadros para que la pelota rebote con movimiento fluido.','Aplastá todos los bugs… ¡pero no los corazones!','Encontrá las 5 alucinaciones de la IA tocándolas.','Encastrá las 4 piezas en la silueta. Tocá una pieza para rotarla.','Poné los 4 faders en la zona verde y dejá sonar la mezcla.','Mezclá luz roja, verde y azul hasta igualar cada color objetivo.'];
+const HINTS=['Microcontrolador piensa, sensor detecta, motor mueve y batería da energía.','Repetir 4 Avanzar, Girar Derecha, Repetir 4 Avanzar.','El orden es: arriba, cae, cae más, aplasta en el suelo y rebota.','Hay 10 bugs al inicio. Cada corazón agrega 3 bugs más.','Revisá cartel, mano, reloj, mesa y silla.','El cono va arriba, la ventana en el cuerpo y las aletas abajo.','Melodía ~80, Bajo ~55, Batería ~75, Ruido 0.','1º: R239 G68 B68. 2º: R34 G197 B94. 3º: R250 G204 B21.'];
+let S=JSON.parse(localStorage.tumo2||'null')||{team:'',av:'🐱',start:0,hints:0,done:[],fin:0,admin:0};
+const save=()=>localStorage.tumo2=JSON.stringify(S);
+let tick,clean=[],clicks=0,AC;
+const beep=(f=600,d=.12,ty='square')=>{try{AC=AC||new(window.AudioContext||webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}};
+const el=()=>S.fin||(Date.now()-S.start)+S.hints*60000;
+const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const unlocked=i=>S.admin||i==0||S.done.includes(i-1);
+const rank=()=>JSON.parse(localStorage.tumo2_rank||'[]').sort((a,b)=>a.t-b.t);
+
+function render(){clearInterval(tick);const A=$('#app');
+ if(!S.team){A.innerHTML=`<main><h1 style="color:var(--g)">TUMO Barracas<br><small style="color:var(--c)">Glitch Scavenger Hunt</small></h1><div class="staff">[STAFF TUMO] 🐱 Un Glitch infectó los servidores. Registrá a tu equipo para restaurarlos.</div><input type="text" id="tn" maxlength="24" placeholder="Nombre del equipo"><div class="row" id="avs">${['🐱','🦊','🐼','🦉','🐙','🤖'].map(a=>`<button class="av${a==S.av?' s':''}" data-a="${a}">${a}</button>`).join('')}</div><button id="go" style="width:100%">▶ Empezar</button><div class="row"><button id="rk0">🏆 Ver ranking</button></div></main>`;
+  A.querySelectorAll('.av').forEach(b=>b.onclick=()=>{S.av=b.dataset.a;A.querySelectorAll('.av').forEach(x=>x.classList.toggle('s',x==b))});
+  $('#go').onclick=()=>{const n=$('#tn').value.trim();if(!n)return $('#tn').focus();S.team=n;S.start=Date.now();save();render()};
+  $('#rk0').onclick=showRank;return}
+ if(!S.seen)return intro();
+ if(S.done.length>=8&&!S.fin){S.fin=el();save();const r=JSON.parse(localStorage.tumo2_rank||'[]');r.push({n:S.team,a:S.av,t:S.fin,h:S.hints});localStorage.tumo2_rank=JSON.stringify(r)}
+ if(S.fin)return final();
+ A.innerHTML=`<header><span class="logo" id="lg">TUMO ▸ BARRACAS</span><span>${S.av} ${S.team}</span><span>⏱ <b id="tm" style="color:var(--c)"></b> · 💡 ${S.hints}</span><button id="rk">🏆</button><button id="ex" class="x">🚪 Salir</button></header><main><div class="staff">[STAFF TUMO] 🐱 Restaurados: ${S.done.length}/8. Cada pista suma +1 min.${S.admin?' <b style="color:var(--r)">[ADMIN]</b>':''}</div><div class="grid">${NAMES.map((n,i)=>{const d=S.done.includes(i),u=unlocked(i);return `<button class="card ${d?'d':u?'g':'l'}" data-i="${i}" ${u?'':'disabled'}><b>${i+1}. ${n}</b><br><br>${d?'✅ Restaurado':u?'⚠️ Glitch detectado':'🔒 Bloqueado'}</button>`}).join('')}</div></main>`;
+ const up=()=>$('#tm').textContent=fmt(el());up();tick=setInterval(up,500);
+ $('#ex').onclick=()=>{if(confirm('¿Cerrar la partida y volver al inicio?')){S={team:'',av:'🐱',start:0,hints:0,done:[],fin:0,admin:0};save();render()}};$('#rk').onclick=showRank;$('#lg').onclick=()=>{if(++clicks>=5){clicks=0;S.admin=1;save();render()}};
+ A.querySelectorAll('.card').forEach(b=>b.onclick=()=>openGame(+b.dataset.i))}
+
+function intro(){const A=$('#app'),M=[`¡Hola, equipo ${S.team}! ${S.av} Soy el gatito atigrado del STAFF de TUMO Barracas 🐱. ¡Qué bueno que llegaron!`,'Hoy pasó algo grave: un GLITCH se coló en nuestros servidores y dejó 8 módulos corruptos: robótica, programación, animación, videojuegos, Gen IA, modelado 3D, música y diseño gráfico.','Cada módulo tiene un minijuego. Cuando lo resuelvan, aparece un código de restauración. Escríbanlo en el campo y toquen Validar para restaurar el módulo.','Se desbloquean en orden, del 1 al 8. Si se traban, hay un botón de pista, pero cada una suma +1 minuto a su tiempo final.','Hay un ranking esperando a los equipos más rápidos. ¡El reloj arranca ahora! A restaurar TUMO 🚀'];let i=0,t;
+ A.innerHTML=`<main style="text-align:center"><div class="dg" style="font-size:90px">🐱</div><div class="staff" style="text-align:left;min-height:130px;font-size:18px"><b>[STAFF TUMO]</b><br><span id="tx"></span></div><div class="row" style="justify-content:center"><button id="nx">Siguiente ▶</button><button id="sk" class="x">Saltar</button></div></main>`;
+ const tx=$('#tx'),nx=$('#nx'),go=()=>{clearInterval(t);S.seen=1;S.start=Date.now();save();render()};
+ const say=()=>{let k=0;const m=M[i];tx.textContent='';nx.textContent=i==M.length-1?'¡Entrar al portal! ▶':'Siguiente ▶';clearInterval(t);t=setInterval(()=>{tx.textContent=m.slice(0,++k);if(k%3==0)beep(700+Math.random()*200,.04,'triangle');if(k>=m.length)clearInterval(t)},28)};
+ nx.onclick=()=>{if(tx.textContent!=M[i]){clearInterval(t);tx.textContent=M[i];return}if(i>=M.length-1)return go();i++;say()};$('#sk').onclick=go;say()}
+function overlay(h){const o=E(`<div class="ov"><div class="md">${h}</div></div>`);document.body.appendChild(o);return o}
+function showRank(){const o=overlay(`<h2 style="color:var(--g)">🏆 Ranking</h2>${rank().map((r,i)=>`<div class="row"><b>${i+1}</b> ${r.a} ${r.n} — ${fmt(r.t)} (💡${r.h})</div>`).join('')||'Sin equipos todavía.'}<button id="cl">Cerrar</button>`);o.querySelector('#cl').onclick=()=>o.remove()}
+function final(){clearInterval(tick);const pos=rank().findIndex(r=>r.n==S.team&&r.t==S.fin)+1;
+ for(let i=0;i<60;i++){const s=document.createElement('span');s.className='cf';s.textContent=['🟢','💠','✨','🔷'][i%4];s.style.left=Math.random()*100+'vw';s.style.animationDelay=Math.random()*3+'s';document.body.appendChild(s);setTimeout(()=>s.remove(),8000)}
+ $('#app').innerHTML=`<main style="text-align:center"><h1 style="color:var(--g)">🎉 ¡Sistema restaurado!</h1><div style="font-size:60px">${S.av}</div><h2>${S.team}</h2><div class="code">${fmt(S.fin)}</div><p>Tiempo + penalizaciones (${S.hints} pistas). Puesto: <b style="color:var(--c)">#${pos}</b></p><button id="rk">🏆 Ver podio completo</button> <button id="nw" class="x">Nuevo equipo</button></main>`;
+ $('#rk').onclick=showRank;$('#nw').onclick=()=>{S={team:'',av:'🐱',start:0,hints:0,done:[],fin:0,admin:0};save();render()}}
+
+function openGame(i){clean=[];const o=overlay(`<h3 style="margin:0;color:var(--g)">${NAMES[i]}</h3><div class="staff">[STAFF TUMO] 🐱 ${STAFF[i]}</div><div id="gb"></div><div class="code" id="cd"></div><div id="hm" style="color:var(--c)"></div><input type="text" id="ci" placeholder="Código de restauración" autocomplete="off"><div class="row"><button id="ok">✔ Validar</button><button id="hn">💡 Pista (+1 min)</button><button id="cl" class="x">Cerrar</button></div>`);
+ const close=()=>{clean.forEach(f=>f());o.remove();render()};
+ const win=()=>{beep(880,.3);$('#cd').textContent=CODES[i];$('#ci').value=CODES[i]};
+ $('#ok').onclick=()=>{if($('#ci').value.trim().toUpperCase()==CODES[i]){if(!S.done.includes(i))S.done.push(i);save();beep(1000,.3);close()}else{beep(150,.3,'sawtooth');$('#ci').style.borderColor='var(--r)'}};
+ $('#hn').onclick=()=>{S.hints++;save();$('#hm').textContent='💡 '+HINTS[i]};
+ $('#cl').onclick=close;G[i]($('#gb'),win)}
+
+const svgPt=(s,e)=>{const p=s.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(s.getScreenCTM().inverse())};
+const G=[];
+// 1 Robótica
+G[0]=(b,win)=>{const P=[['🧠','Microcontrolador'],['👁','Sensor ultrasónico'],['⚙️','Motor'],['🔋','Batería']],F=['Piensa y decide','Detecta obstáculos','Mueve las ruedas','Da energía'],sh=a=>a.sort(()=>Math.random()-.5),so=sh([0,1,2,3]),po=sh([0,1,2,3]);let sel=-1,put=[];
+ b.innerHTML=`<div style="font-size:70px;text-align:center" id="rb">🤖</div><div id="sl" class="row" style="justify-content:center"></div><div id="pt" class="row" style="justify-content:center"></div><div id="ms" style="text-align:center"></div>`;
+ const ms=b.querySelector('#ms');
+ const draw=()=>{b.querySelector('#sl').innerHTML=so.map(i=>put.includes(i)?`<button disabled style="border-color:#EF4444">✅ ${P[i][0]} ${F[i]}</button>`:`<button data-s="${i}">⬜ ${F[i]}</button>`).join('');
+  b.querySelector('#pt').innerHTML=po.filter(i=>!put.includes(i)).map(i=>`<button data-p="${i}" style="${sel==i?'background:#EF4444;color:#000':''}">${P[i][0]} ${P[i][1]}</button>`).join('');
+  b.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{sel=+x.dataset.p;beep(500);draw()});
+  b.querySelectorAll('[data-s]').forEach(x=>x.onclick=()=>{const i=+x.dataset.s;if(sel<0)return ms.textContent='Primero elegí una pieza.';if(sel==i){put.push(i);beep(800);ms.textContent='✅ ¡Conectada!'}else{beep(150,.3,'sawtooth');ms.textContent='❌ Esa pieza no cumple esa función.'}sel=-1;draw();if(put.length==4){b.querySelector('#rb').textContent='🤖⚡';win()}})};draw()};
+// 2 Bug hunter
+G[1]=(b,win)=>{b.innerHTML=`<div>Bugs: <b id="bc"></b></div><div class="arena" id="ar"></div>`;const ar=b.querySelector('#ar'),I=[];let done=0;
+ const add=(bug)=>{const e=document.createElement('span');e.className='it';e.textContent=bug?['👾','🦠','🐛'][Math.random()*3|0]:'❤️';const o={e,bug,x:Math.random()*250,y:Math.random()*280,vx:(Math.random()*2+1)*(Math.random()<.5?-1:1),vy:(Math.random()*2+1)*(Math.random()<.5?-1:1)};e.onpointerdown=ev=>{ev.preventDefault();if(done)return;if(bug){beep(700);e.remove();I.splice(I.indexOf(o),1);cnt()}else{beep(120,.3,'sawtooth');ar.classList.add('f');setTimeout(()=>ar.classList.remove('f'),300);navigator.vibrate&&navigator.vibrate(200);for(let k=0;k<3;k++)add(1);cnt()}};ar.appendChild(e);I.push(o)};
+ const cnt=()=>{const n=I.filter(o=>o.bug).length;b.querySelector('#bc').textContent=n;if(!n&&!done){done=1;win()}};
+ for(let k=0;k<10;k++)add(1);for(let k=0;k<4;k++)add(0);cnt();
+ let raf;const loop=()=>{const W=ar.clientWidth-40,H=ar.clientHeight-40;I.forEach(o=>{o.x+=o.vx;o.y+=o.vy;if(o.x<0||o.x>W)o.vx*=-1;if(o.y<0||o.y>H)o.vy*=-1;o.e.style.left=o.x+'px';o.e.style.top=o.y+'px'});raf=requestAnimationFrame(loop)};loop();clean.push(()=>cancelAnimationFrame(raf))};
+// 3 Música
+G[2]=(b,win)=>{const V=[0,100,15,100],R=[[75,90],[45,65],[65,85],[0,3]],NM=['Melodía','Bajo','Batería','Ruido'];
+ const lead=[659,659,0,659,0,523,659,0,784,0,0,0,392,0,0,0],bass=[131,0,0,0,131,0,0,0,98,0,0,0,98,0,0,0];let st=0,ok=0,iv=0,fin=0;
+ b.innerHTML=`<button id="pl">▶ Reproducir Mezcla</button><div class="fd">${NM.map((n,i)=>`<div><span id="v${i}">${V[i]}</span><br><input class="v" type="range" min="0" max="100" value="${V[i]}" data-i="${i}"><br>${n}<br><small>${R[i][0]}-${R[i][1]}</small></div>`).join('')}</div>`;
+ const chk=()=>V.every((v,i)=>v>=R[i][0]&&v<=R[i][1]);
+ b.querySelectorAll('input').forEach(x=>x.oninput=()=>{V[x.dataset.i]=+x.value;const i=x.dataset.i,s=b.querySelector('#v'+i);s.textContent=x.value;s.style.color=x.value>=R[i][0]&&x.value<=R[i][1]?'#EF4444':'#fb923c'});
+ const nz=(g,d)=>{AC=AC||new(window.AudioContext||webkitAudioContext)();const buf=AC.createBuffer(1,AC.sampleRate*d,AC.sampleRate),a=buf.getChannelData(0);for(let k=0;k<a.length;k++)a[k]=Math.random()*2-1;const s=AC.createBufferSource(),G2=AC.createGain();s.buffer=buf;G2.gain.value=g;s.connect(G2);G2.connect(AC.destination);s.start()};
+ const tone=(f,ty,g,d)=>{if(!f||g<=0)return;const o=AC.createOscillator(),G2=AC.createGain();o.type=ty;o.frequency.value=f;G2.gain.value=g;o.connect(G2);G2.connect(AC.destination);o.start();G2.gain.exponentialRampToValueAtTime(.0005,AC.currentTime+d);o.stop(AC.currentTime+d)};
+ b.querySelector('#pl').onclick=()=>{if(iv)return;AC=AC||new(window.AudioContext||webkitAudioContext)();AC.resume();
+  iv=setInterval(()=>{const s=st++%16;tone(lead[s],'square',V[0]/100*.12,.14);tone(bass[s],'triangle',V[1]/100*.25,.3);if(s%2==0)nz(V[2]/100*.15*(s%4==0?1:.5),.05);if(V[3]>0)nz(V[3]/100*.08,.12);
+   ok=chk()?ok+1:0;if(ok>=20&&!fin){fin=1;win()}},150)};
+ clean.push(()=>clearInterval(iv))};
+// 4 3D (proyección 2D táctil)
+G[3]=(b,win)=>{const sh={b:'<rect x="-30" y="-70" width="60" height="140" rx="8"/>',c:'<polygon points="0,-35 30,25 -30,25"/>',w:'<circle r="16"/>',f:'<polygon points="-55,35 -30,-20 -30,35"/><polygon points="55,35 30,-20 30,35"/>'};
+ const T={b:[150,190],c:[150,95],w:[150,160],f:[150,225]},P={b:{x:60,y:300,r:90},c:{x:240,y:60,r:180},w:{x:240,y:300,r:0},f:{x:60,y:60,r:45}};let sel='b',lock={};
+ b.innerHTML=`<svg id="sv" viewBox="0 0 300 340" width="100%" style="background:#0006;border-radius:12px"></svg><div class="row"><button id="rl">↺ 45°</button><button id="rr">↻ 45°</button><span id="sl"></span></div>`;
+ const sv=b.querySelector('#sv'),col={b:'#fca5a5',c:'#fb923c',w:'#fde047',f:'#a78bfa'};
+ const draw=()=>{sv.innerHTML=Object.keys(T).map(k=>`<g transform="translate(${T[k]}) " fill="none" stroke="#EF4444" stroke-dasharray="4" opacity=".6">${sh[k]}</g>`).join('')+Object.keys(P).map(k=>`<g data-k="${k}" transform="translate(${P[k].x},${P[k].y}) rotate(${P[k].r})" fill="${col[k]}" fill-opacity="${lock[k]?1:.7}" stroke="${sel==k?'#fff':'none'}" stroke-width="3" style="cursor:grab">${sh[k]}</g>`).join('');
+  b.querySelector('#sl').textContent='Pieza: '+({b:'Cilindro',c:'Cono',w:'Esfera',f:'Aletas'})[sel]+' | X '+Math.round(P[sel].x)+' Y '+Math.round(P[sel].y)+' R '+P[sel].r%360+'°'};
+ let drag=0;sv.onpointerdown=e=>{const g=e.target.closest('[data-k]');if(!g||lock[g.dataset.k])return;sel=g.dataset.k;drag=1;sv.setPointerCapture(e.pointerId);draw()};
+ sv.onpointermove=e=>{if(!drag)return;const p=svgPt(sv,e);P[sel].x=p.x;P[sel].y=p.y;draw()};
+ sv.onpointerup=()=>{if(!drag)return;drag=0;snap()};
+ const snap=()=>{const k=sel,t=T[k],p=P[k];if(!lock[k]&&Math.hypot(p.x-t[0],p.y-t[1])<22&&(k=='w'||(((p.r%360)+360)%360==0))){p.x=t[0];p.y=t[1];p.r=0;lock[k]=1;beep(900)}draw();if(Object.keys(T).every(k=>lock[k])){sv.querySelectorAll('[data-k]').forEach(g=>g.setAttribute('filter','drop-shadow(0 0 8px #EF4444)'));win()}};
+ const rot=d=>{if(lock[sel])return;P[sel].r+=d;beep(500);snap()};b.querySelector('#rl').onclick=()=>rot(-45);b.querySelector('#rr').onclick=()=>rot(45);draw()};
+// 5 Programación
+G[4]=(b,win)=>{let seq=[{t:'F'},{t:'L'}],run=0;const OB=['1,1','2,2','3,3','1,3','3,1'],D=[[0,1],[1,0],[0,-1],[-1,0]],ic=['🤖'];
+ b.innerHTML=`<div id="gr" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;max-width:300px;margin:auto"></div><div id="sq" style="min-height:56px;margin:8px 0"></div><div class="row"><button data-a="F">Avanzar</button><button data-a="L">Izq ↺</button><button data-a="R">Der ↻</button><button data-a="X">Repetir N</button></div><div class="row"><button id="rn">▶ Ejecutar</button><button id="cc" class="x">Borrar todo</button></div><div id="ms"></div>`;
+ const lb={F:'Avanzar',L:'↺',R:'↻',X:'Repetir'};
+ const grid=(r,c,bad)=>{b.querySelector('#gr').innerHTML=Array.from({length:25},(_,k)=>{const y=k/5|0,x=k%5,o=OB.includes(y+','+x);return `<div class="cell" style="background:${bad&&bad[0]==y&&bad[1]==x?'#fb923c':o?'#fb923c55':'#151a24'}">${r==y&&c==x?'🤖':o?'⚡':y==4&&x==4?'🖥':''}</div>`}).join('')};
+ const list=()=>{b.querySelector('#sq').innerHTML=seq.map((s,i)=>`<span class="chip" data-i="${i}">${lb[s.t]}${s.t=='X'?' '+s.n+'×':''}</span>`).join('')||'(vacío)';b.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{if(run)return;const s=seq[c.dataset.i];if(s.t=='X'){s.n=s.n==4?2:s.n+1}else seq.splice(c.dataset.i,1);list()})};
+ b.querySelectorAll('[data-a]').forEach(x=>x.onclick=()=>{if(run)return;const a=x.dataset.a;seq.push(a=='X'?{t:'X',n:2}:{t:a});beep(500);list()});
+ b.querySelector('#cc').onclick=()=>{if(!run){seq=[];list()}};
+ b.querySelector('#rn').onclick=()=>{if(run)return;run=1;const ex=[];for(let i=0;i<seq.length;i++){if(seq[i].t=='X'){const nx=seq[i+1];if(nx&&nx.t!='X'){for(let k=0;k<seq[i].n;k++)ex.push(nx.t);i++}}else ex.push(seq[i].t)}
+  let r=0,c=0,d=1,i=0;const ms=b.querySelector('#ms');ms.textContent='';grid(0,0);d=1;
+  const step=()=>{if(i>=ex.length){run=0;if(r==4&&c==4)win();else ms.textContent='❌ No llegó al servidor. ¡Corregí el algoritmo!';return}
+   const a=ex[i++];if(a=='L')d=(d+3)%4;else if(a=='R')d=(d+1)%4;else{r+=D[d][0];c+=D[d][1];if(r<0||c<0||r>4||c>4||OB.includes(r+','+c)){beep(120,.3,'sawtooth');grid(-9,-9,[r,c]);ms.textContent='💥 Chocó en ('+(r+1)+','+(c+1)+')';run=0;return}}
+   beep(450);grid(r,c);setTimeout(step,400)};setTimeout(step,300)};
+ grid(0,0);list()};
+// 6 Gen IA
+G[5]=(b,win)=>{const F=new Set(),H=[[85,37,44],[182,122,26],[340,50,34],[285,182,34],[150,232,42]];
+ b.innerHTML=`<p><i>"Un estudiante de TUMO saludando en el aula de Barracas, con un reloj en la pared, una planta y una laptop sobre la mesa"</i></p><div>Alucinaciones: <b id="fc">0/5</b></div><svg id="sv" viewBox="0 0 400 270" width="100%" style="border-radius:12px;cursor:crosshair"></svg>`;
+ const sv=b.querySelector('#sv'),SK='#ffe4d1';
+ const draw=()=>{const cl=F.size==5,n=cl?5:6;
+ const fing=Array.from({length:n},(_,k)=>{const a=(-160+k*(140/(n-1)))*Math.PI/180;return `<line x1="182" y1="124" x2="${182+Math.cos(a)*17}" y2="${124+Math.sin(a)*17}" stroke="${SK}" stroke-width="4.5" stroke-linecap="round"/>`}).join('');
+ sv.innerHTML=`<defs><linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2a6e"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#fdba74"/></linearGradient><linearGradient id="fw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c4a2d"/><stop offset="1" stop-color="#4a2c17"/></linearGradient><radialGradient id="ir" cx=".5" cy=".4"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#4338ca"/></radialGradient></defs>
+ <g pointer-events="none">
+ <rect width="400" height="270" fill="url(#wl)"/>
+ <rect x="175" y="18" width="115" height="85" rx="6" fill="url(#sk)" stroke="#f9a8d4" stroke-width="4"/><circle cx="215" cy="45" r="11" fill="#fff" opacity=".8"/><ellipse cx="255" cy="70" rx="22" ry="7" fill="#fff" opacity=".7"/><line x1="232" y1="18" x2="232" y2="103" stroke="#f9a8d4" stroke-width="3"/>
+ ${[[190,30],[250,40],[270,88],[205,85]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.5" fill="#fbcfe8"/>`).join('')}
+ <rect y="215" width="400" height="55" fill="url(#fw)"/>
+ <rect x="20" y="18" width="130" height="38" rx="8" fill="#0f172a" stroke="#EF4444" stroke-width="2.5"/><text x="85" y="42" text-anchor="middle" fill="#EF4444" font-size="12" font-weight="700">${cl?'TUMO BARRACAS':'TUMØ BARAKRRAS'}</text>
+ <circle cx="340" cy="50" r="30" fill="#fff" stroke="#f472b6" stroke-width="4"/><text x="340" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">${cl?12:13}</text><line x1="340" y1="50" x2="340" y2="34" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/><line x1="340" y1="50" x2="353" y2="57" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round"/>
+ <path d="M44 200L76 200L71 222L49 222Z" fill="#fb7185"/><ellipse cx="60" cy="184" rx="8" ry="18" fill="#22c55e"/><ellipse cx="48" cy="190" rx="7" ry="15" fill="#16a34a" transform="rotate(-35 48 190)"/><ellipse cx="72" cy="190" rx="7" ry="15" fill="#4ade80" transform="rotate(35 72 190)"/>
+ <ellipse cx="110" cy="100" rx="30" ry="32" fill="#4c1d95"/>
+ <path d="M88 152Q80 175 90 192" stroke="#fca5a5" stroke-width="10" fill="none" stroke-linecap="round"/>
+ <path d="M82 205Q84 140 110 138Q136 140 138 205Z" fill="#fca5a5"/><path d="M110 140l-5 10 5 18 5-18z" fill="#fb923c"/>
+ <path d="M132 150Q160 150 178 128" stroke="#fca5a5" stroke-width="11" fill="none" stroke-linecap="round"/>${fing}<circle cx="182" cy="124" r="8" fill="${SK}"/>
+ <circle cx="110" cy="105" r="24" fill="${SK}"/>
+ ${[100,120].map(x=>`<ellipse cx="${x}" cy="108" rx="6" ry="8" fill="#fff"/><ellipse cx="${x}" cy="109" rx="4.5" ry="6.5" fill="url(#ir)"/><circle cx="${x+1.5}" cy="106" r="2" fill="#fff"/>`).join('')}
+ <ellipse cx="94" cy="118" rx="5" ry="3" fill="#fb7185" opacity=".5"/><ellipse cx="126" cy="118" rx="5" ry="3" fill="#fb7185" opacity=".5"/><path d="M104 120Q110 127 116 120" stroke="#be123c" stroke-width="2" fill="none" stroke-linecap="round"/>
+ <path d="M85 100Q86 70 112 74Q134 72 135 100L123 88L113 100L102 86L92 100Z" fill="#6d28d9"/><path d="M104 74L112 58L120 75Z" fill="#6d28d9"/>
+ <rect x="205" y="205" width="165" height="12" rx="3" fill="#b45309"/><rect x="215" y="217" width="8" height="40" fill="#92400e"/><rect x="352" y="217" width="8" height="40" fill="#92400e"/>
+ ${cl?'<rect x="255" y="180" width="50" height="27" rx="3" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/><rect x="260" y="184" width="40" height="19" fill="#fca5a5"/><path d="M248 207h64l-6-4h-52z" fill="#94a3b8"/>':'<rect x="258" y="178" width="55" height="28" rx="8" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/><rect x="266" y="173" width="14" height="5" fill="#475569"/><rect x="290" y="173" width="14" height="5" fill="#475569"/><rect x="268" y="186" width="24" height="14" rx="2" fill="#fca5a5"/><circle cx="302" cy="193" r="4" fill="#fb923c"/>'}
+ ${cl?'<ellipse cx="150" cy="248" rx="40" ry="6" fill="#000" opacity=".35"/><rect x="174" y="217" width="6" height="28" fill="#c2410c"/>':'<ellipse cx="150" cy="198" rx="32" ry="6" fill="#fff" opacity=".35"/><rect x="196" y="226" width="6" height="28" fill="#c2410c" transform="rotate(25 199 240)"/>'}
+ <rect x="120" y="208" width="62" height="9" rx="3" fill="#c2410c"/><rect x="174" y="172" width="8" height="38" rx="2" fill="#c2410c"/><rect x="124" y="217" width="6" height="28" fill="#c2410c"/>
+ ${cl?'<text x="200" y="130" font-size="22" fill="#fde047">✨</text><text x="30" y="110" font-size="22" fill="#fde047">✨</text>':''}
+ </g>
+ ${H.map((h,i)=>`<circle data-i="${i}" cx="${h[0]}" cy="${h[1]}" r="${h[2]}" pointer-events="all" fill="${F.has(i)&&!cl?'#fb923c33':'transparent'}" stroke="${F.has(i)&&!cl?'#fb923c':'none'}" stroke-width="3" stroke-dasharray="5"/>`).join('')}`;
+ b.querySelector('#fc').textContent=F.size+'/5'};
+ sv.onpointerdown=e=>{const c=e.target.closest('[data-i]');if(!c)return beep(200,.1);const i=+c.dataset.i;if(!F.has(i)){F.add(i);beep(700)}draw();if(F.size==5)win()};draw()};
+// 7 Animación
+G[6]=(b,win)=>{const F=[[18,14,14],[40,13,16],[72,12,18],[90,22,8],[55,13,16]],fr=f=>`<svg viewBox="0 0 80 110" width="${f[3]||70}"><rect width="80" height="110" fill="#0006"/><line x1="0" y1="100" x2="80" y2="100" stroke="#EF4444"/><ellipse cx="40" cy="${f[0]}" rx="${f[1]}" ry="${f[2]}" fill="#fb923c"/></svg>`;let o=[3,0,4,2,1],sel=-1,busy=0;
+ b.innerHTML=`<p>Tocá dos cuadros para intercambiarlos y lograr un rebote fluido.</p><div id="tl" class="row" style="justify-content:center"></div><div id="pv" style="text-align:center;min-height:130px"></div><div id="ms" style="text-align:center"></div><button id="pl">▶ Reproducir animación</button>`;
+ const ms=b.querySelector('#ms'),draw=()=>{b.querySelector('#tl').innerHTML=o.map((id,i)=>`<button data-i="${i}" style="padding:4px;${sel==i?'background:#EF4444':''}">${fr(F[id])}</button>`).join('');
+  b.querySelectorAll('[data-i]').forEach(x=>x.onclick=()=>{if(busy)return;const i=+x.dataset.i;beep(500);if(sel<0)sel=i;else{[o[sel],o[i]]=[o[i],o[sel]];sel=-1}draw()})};
+ b.querySelector('#pl').onclick=()=>{if(busy)return;if(o.join()!='0,1,2,3,4')return ms.textContent='⚠️ Los cuadros no tienen continuidad. ¡Reordenalos!';busy=1;let k=0;const pv=b.querySelector('#pv'),s=()=>{if(k>=10){win();ms.textContent='🎞 ¡Animación fluida!';return}pv.innerHTML=fr([...F[o[k%5]],110]);beep(300+(k%5)*80,.08);k++;setTimeout(s,300)};s()};draw()};
+// 8 Diseño gráfico
+G[7]=(b,win)=>{const T=[[239,68,68],[34,197,94],[250,204,21]],L=['Rojo','Verde','Azul'];let r=0,v=[128,128,128];
+ b.innerHTML=`<div>Color <b id="n"></b>/3 — igualá el color objetivo</div><div class="row" style="justify-content:center"><div><div id="tg" style="width:120px;height:90px;border-radius:12px"></div>Objetivo</div><div><div id="me" style="width:120px;height:90px;border-radius:12px"></div>Tu color</div></div>${L.map((l,i)=>`${l} <b id="v${i}"></b><input type="range" min="0" max="255" data-i="${i}">`).join('')}<div id="ms"></div><button id="ok2">✔ Confirmar color</button>`;
+ const ms=b.querySelector('#ms'),$$=s=>b.querySelector(s),diff=()=>v.map((x,i)=>Math.abs(x-T[r][i]));
+ const upd=()=>{$$('#n').textContent=r+1;$$('#tg').style.background=`rgb(${T[r]})`;$$('#me').style.background=`rgb(${v})`;v.forEach((x,i)=>{$$('#v'+i).textContent=x;b.querySelectorAll('input')[i].value=x});ms.textContent='Parecido: '+Math.round(100-diff().reduce((a,c)=>a+c,0)/7.65)+'%'};
+ b.querySelectorAll('input').forEach(x=>x.oninput=()=>{v[x.dataset.i]=+x.value;upd()});
+ $$('#ok2').onclick=()=>{if(diff().every(d=>d<=25)){beep(900);if(++r>=3){ms.textContent='🎨 ¡Paleta restaurada!';win();return}v=[128,128,128];upd()}else{beep(150,.3,'sawtooth');ms.textContent+=' — Todavía no coincide.'}};upd()};
+// Orden de módulos: Robótica, Programación, Animación, Videojuegos, Gen IA, 3D, Música, Diseño
+{const g=G.slice();G[1]=g[4];G[2]=g[6];G[3]=g[1];G[4]=g[5];G[5]=g[3];G[6]=g[2];G[7]=g[7]}
+render();
+</script></body></html>
